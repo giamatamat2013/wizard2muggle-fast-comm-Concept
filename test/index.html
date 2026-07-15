@@ -264,6 +264,13 @@
   }
   .sketch-toggle[aria-pressed="true"]{background:var(--gold); color:#241a08;}
   .sketch-toggle:focus-visible{outline:2px solid var(--focus); outline-offset:2px;}
+  .attach-btn{
+    border:1px solid color-mix(in srgb, var(--dusk) 30%, transparent); background:#fff; color:var(--ink);
+    border-radius:999px; width:36px; height:36px; flex-shrink:0; cursor:pointer; font-size:15px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .attach-btn:hover{background:color-mix(in srgb, var(--dusk) 10%, #fff);}
+  .attach-btn:focus-visible{outline:2px solid var(--focus); outline-offset:2px;}
 
   /* mirror board */
   .mirror-badge{
@@ -350,6 +357,11 @@
   .homeboard[data-state="visible"] .homeboard-content{display:flex;}
   .homeboard-text{font-size:19px; font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;}
   .homeboard-sketch{max-width:220px; max-height:130px; border-radius:6px; border:2px solid #eafff0; display:block;}
+  .homeboard-pasting{opacity:0; transform:scale(.7) rotate(-6deg); transition:opacity .5s ease, transform .5s ease;}
+  .homeboard-pasting.pasted{opacity:1; transform:scale(1) rotate(0deg);}
+  @media (prefers-reduced-motion: reduce){
+    .homeboard-pasting{transition:opacity .2s ease; transform:none;}
+  }
   .homeboard-flash{position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none;}
   .homeboard-flash[data-flash="true"]{animation:flashpulse .4s ease;}
   @keyframes flashpulse{0%{opacity:0;} 18%{opacity:.9;} 100%{opacity:0;}}
@@ -701,6 +713,8 @@
 
           <div class="inputrow">
             <button type="button" class="sketch-toggle" id="sketchToggle" aria-pressed="false" title="הוסיפו שרבוט במקום טקסט">✏️</button>
+            <button type="button" class="sketch-toggle" id="imageUploadBtn" title="הדביקו תמונה מהמחשב">🖼️</button>
+            <input type="file" id="diaryImageInput" accept="image/*" hidden />
             <input type="text" id="diaryInput" placeholder="כתבו שורה חדשה ביומן…" maxlength="140" />
             <button type="button" class="sendbtn" id="diarySend" disabled>הוסיפו ⇠</button>
           </div>
@@ -745,11 +759,13 @@
             <p class="whatsapp-empty" id="whatsappEmpty">עדיין אין הודעות</p>
           </div>
           <div class="inputrow whatsapp-composer">
+            <button type="button" class="attach-btn" id="whatsappAttach" title="שלחו תמונה" aria-label="שלחו תמונה">➕</button>
+            <input type="file" id="whatsappImageInput" accept="image/*" hidden />
             <input type="text" id="whatsappInput" placeholder="כתבו תשובה מהבית…" maxlength="140" />
             <button type="button" class="sendbtn whatsapp-send" id="whatsappSend" disabled>שלחו ⇠</button>
           </div>
         </div>
-        <p class="draw-hint">מה שתכתבו כאן תיכתב ע"י יד רובוטית על הלוח, ותופיע ביומן של התלמיד/ה</p>
+        <p class="draw-hint">מה שתכתבו או תצרפו כאן ייכתב או יודפס ויודבק ע"י יד רובוטית על הלוח, ויופיע ביומן של התלמיד/ה</p>
       </article>
 
     </div>
@@ -931,6 +947,10 @@
     sketchCanvas: document.getElementById("canvasDiarySketch"),
     sketchClear: document.getElementById("sketchClear"),
     sketchCommit: document.getElementById("sketchCommit"),
+    imageUploadBtn: document.getElementById("imageUploadBtn"),
+    diaryImageInput: document.getElementById("diaryImageInput"),
+    whatsappAttach: document.getElementById("whatsappAttach"),
+    whatsappImageInput: document.getElementById("whatsappImageInput"),
     homeBoard: document.getElementById("homeBoard"),
     homeBoardContent: document.getElementById("homeBoardContent"),
     homeBoardFlash: document.getElementById("homeBoardFlash"),
@@ -975,10 +995,13 @@
     var html = "";
     diaryEntries.forEach(function(entry){
       if (entry.direction === "toWizard"){
+        var fromHomeLabel = entry.type === "text" ? '🦾 נכתב ע"י יד רובוטית מהבית' : '🦾 הודבקה ע"י יד רובוטית מהבית';
         html += '<div class="diary-entry diary-entry-fromhome">' +
           '<div class="diary-entry-head"><span>' + entry.time + '</span>' +
-          '<span class="diary-status" data-status="fromhome">🦾 נכתב ע"י יד רובוטית מהבית</span></div>' +
-          '<p class="diary-entry-text">' + escapeHtml(entry.text) + '</p>' +
+          '<span class="diary-status" data-status="fromhome">' + fromHomeLabel + '</span></div>' +
+          (entry.type === "text"
+            ? '<p class="diary-entry-text">' + escapeHtml(entry.text) + '</p>'
+            : '<img class="diary-entry-sketch" src="' + entry.image + '" alt="תמונה מהבית" />') +
           '</div>';
         return;
       }
@@ -1111,21 +1134,34 @@
     if (diaryTyper){ clearInterval(diaryTyper); diaryTyper = null; }
   }
 
+  function startRing(durationMs){
+    diaryEls.homeBoardRing.style.transition = "none";
+    diaryEls.homeBoardRing.style.strokeDasharray = String(RING_CIRCUMFERENCE);
+    diaryEls.homeBoardRing.style.strokeDashoffset = "0";
+    void diaryEls.homeBoardRing.getBoundingClientRect();
+    diaryEls.homeBoardRing.style.transition = "stroke-dashoffset " + (durationMs/1000) + "s linear";
+    diaryEls.homeBoardRing.style.strokeDashoffset = String(RING_CIRCUMFERENCE);
+  }
+
+  function scheduleBoardIdle(durationMs){
+    diaryTimers.push(setTimeout(function(){
+      diaryEls.homeBoard.setAttribute("data-state","idle");
+      diaryEls.homeBoardContent.innerHTML = "";
+      diaryProcessing = false;
+      processDiaryQueue();
+    }, durationMs));
+  }
+
   function showEntryOnHomeBoard(entry){
     clearDiaryTimers();
+    var DISPLAY_MS = 15000;
     diaryEls.homeBoard.setAttribute("data-state","visible");
     diaryEls.homeBoardRecog.textContent = "";
     diaryEls.homeBoardCamera.textContent = "📷 מצלמת הבית מצלמת את הלוח…";
     diaryEls.homeBoardContent.innerHTML = entry.type === "text"
       ? '<p class="homeboard-text">' + escapeHtml(entry.text) + '</p>'
-      : '<img class="homeboard-sketch" src="' + entry.image + '" alt="שרבוט מהיומן" />';
-
-    diaryEls.homeBoardRing.style.transition = "none";
-    diaryEls.homeBoardRing.style.strokeDasharray = String(RING_CIRCUMFERENCE);
-    diaryEls.homeBoardRing.style.strokeDashoffset = "0";
-    void diaryEls.homeBoardRing.getBoundingClientRect();
-    diaryEls.homeBoardRing.style.transition = "stroke-dashoffset 15s linear";
-    diaryEls.homeBoardRing.style.strokeDashoffset = String(RING_CIRCUMFERENCE);
+      : '<img class="homeboard-sketch" src="' + entry.image + '" alt="תמונה מהיומן" />';
+    startRing(DISPLAY_MS);
 
     diaryTimers.push(setTimeout(function(){
       diaryEls.homeBoardFlash.setAttribute("data-flash","true");
@@ -1147,12 +1183,7 @@
       pushWhatsappMessage(entry, recognized);
     }, 3400));
 
-    diaryTimers.push(setTimeout(function(){
-      diaryEls.homeBoard.setAttribute("data-state","idle");
-      diaryEls.homeBoardContent.innerHTML = "";
-      diaryProcessing = false;
-      processDiaryQueue();
-    }, 15000));
+    scheduleBoardIdle(DISPLAY_MS);
   }
 
   function pushWhatsappMessage(entry, recognized){
@@ -1174,6 +1205,15 @@
     diaryEls.whatsappBody.scrollTop = diaryEls.whatsappBody.scrollHeight;
   }
 
+  function pushWhatsappOutgoingImage(dataUrl){
+    diaryEls.whatsappEmpty.style.display = "none";
+    var bubble = document.createElement("div");
+    bubble.className = "whatsapp-bubble outgoing";
+    bubble.innerHTML = '<img src="' + dataUrl + '" alt="תמונה שנשלחה מהבית" />' + '<time>' + nowLabel() + '</time>';
+    diaryEls.whatsappBody.appendChild(bubble);
+    diaryEls.whatsappBody.scrollTop = diaryEls.whatsappBody.scrollHeight;
+  }
+
   function updateWhatsappSendState(){
     diaryEls.whatsappSend.disabled = diaryEls.whatsappInput.value.trim() === "";
   }
@@ -1190,22 +1230,47 @@
     queueDiaryEntry({direction:"toWizard", type:"text", text:text});
   }
 
+  function readImageFile(file, onLoaded){
+    if (!file || file.type.indexOf("image/") !== 0) return;
+    var reader = new FileReader();
+    reader.onload = function(){ onLoaded(reader.result); };
+    reader.readAsDataURL(file);
+  }
+
+  diaryEls.whatsappAttach.addEventListener("click", function(){ diaryEls.whatsappImageInput.click(); });
+  diaryEls.whatsappImageInput.addEventListener("change", function(){
+    var file = diaryEls.whatsappImageInput.files && diaryEls.whatsappImageInput.files[0];
+    diaryEls.whatsappImageInput.value = "";
+    readImageFile(file, function(dataUrl){
+      pushWhatsappOutgoingImage(dataUrl);
+      queueDiaryEntry({direction:"toWizard", type:"image", image:dataUrl});
+    });
+  });
+
+  diaryEls.imageUploadBtn.addEventListener("click", function(){ diaryEls.diaryImageInput.click(); });
+  diaryEls.diaryImageInput.addEventListener("change", function(){
+    var file = diaryEls.diaryImageInput.files && diaryEls.diaryImageInput.files[0];
+    diaryEls.diaryImageInput.value = "";
+    readImageFile(file, function(dataUrl){
+      queueDiaryEntry({type:"image", image:dataUrl});
+    });
+  });
+
   function showEntryFromHomeToWizard(entry){
     clearDiaryTimers();
+    diaryEls.homeBoard.setAttribute("data-state","visible");
+    diaryEls.homeBoardRecog.textContent = "";
+    if (entry.type === "image") showImageFromHomeToWizard(entry);
+    else showTextFromHomeToWizard(entry);
+  }
+
+  function showTextFromHomeToWizard(entry){
     var DISPLAY_MS = 6000;
     var WRITE_MS = Math.min(2600, 700 + entry.text.length * 70);
 
-    diaryEls.homeBoard.setAttribute("data-state","visible");
-    diaryEls.homeBoardRecog.textContent = "";
     diaryEls.homeBoardCamera.textContent = '🦾 יד רובוטית כותבת על הלוח…';
     diaryEls.homeBoardContent.innerHTML = '<p class="homeboard-text" id="handwriteText"></p>';
-
-    diaryEls.homeBoardRing.style.transition = "none";
-    diaryEls.homeBoardRing.style.strokeDasharray = String(RING_CIRCUMFERENCE);
-    diaryEls.homeBoardRing.style.strokeDashoffset = "0";
-    void diaryEls.homeBoardRing.getBoundingClientRect();
-    diaryEls.homeBoardRing.style.transition = "stroke-dashoffset " + (DISPLAY_MS/1000) + "s linear";
-    diaryEls.homeBoardRing.style.strokeDashoffset = String(RING_CIRCUMFERENCE);
+    startRing(DISPLAY_MS);
 
     var target = entry.text;
     var shown = 0;
@@ -1227,12 +1292,32 @@
       renderDiaryBook();
     }, WRITE_MS + 250));
 
+    scheduleBoardIdle(DISPLAY_MS);
+  }
+
+  function showImageFromHomeToWizard(entry){
+    var DISPLAY_MS = 6000;
+    var PRINT_MS = 1600;
+
+    diaryEls.homeBoardCamera.textContent = "🖨️ מדפיסים את התמונה…";
+    diaryEls.homeBoardContent.innerHTML =
+      '<img class="homeboard-sketch homeboard-pasting" id="pasteImage" src="' + entry.image + '" alt="תמונה מהבית" />';
+    startRing(DISPLAY_MS);
+
     diaryTimers.push(setTimeout(function(){
-      diaryEls.homeBoard.setAttribute("data-state","idle");
-      diaryEls.homeBoardContent.innerHTML = "";
-      diaryProcessing = false;
-      processDiaryQueue();
-    }, DISPLAY_MS));
+      diaryEls.homeBoardCamera.textContent = "🦾 מדביקים את התמונה על הלוח…";
+      var img = document.getElementById("pasteImage");
+      if (img) img.classList.add("pasted");
+    }, PRINT_MS));
+
+    diaryTimers.push(setTimeout(function(){
+      diaryEls.homeBoardCamera.textContent = "✅ התמונה הודבקה על הלוח";
+      diaryEls.homeBoardRecog.textContent = 'נשלח ליומן של התלמיד/ה 📖';
+      diaryEntries.push(entry);
+      renderDiaryBook();
+    }, PRINT_MS + 700));
+
+    scheduleBoardIdle(DISPLAY_MS);
   }
 
   var diaryConfirmTimer = null;
