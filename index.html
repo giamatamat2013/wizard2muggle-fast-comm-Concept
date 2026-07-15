@@ -397,6 +397,23 @@
   body[dir="rtl"] .whatsapp-bubble{border-radius:10px 0 10px 10px;}
   .whatsapp-bubble img{max-width:100%; border-radius:6px; display:block; margin-bottom:4px;}
   .whatsapp-bubble time{display:block; font-size:10px; opacity:.55; margin-top:3px; font-variant-numeric:tabular-nums;}
+  .whatsapp-bubble.outgoing{
+    align-self:flex-end; background:color-mix(in srgb, var(--wa-green) 24%, #fff);
+    border-radius:10px 0 10px 10px;
+  }
+  body[dir="rtl"] .whatsapp-bubble.outgoing{border-radius:0 10px 10px 10px;}
+  .whatsapp-composer{
+    display:flex; gap:8px; padding:10px 12px;
+    background:color-mix(in srgb, var(--wa-bg) 55%, #fff);
+    border-top:1px solid color-mix(in srgb, var(--dusk) 15%, transparent);
+    flex-shrink:0;
+  }
+  .whatsapp-mock .whatsapp-composer input[type="text"]{
+    border:1px solid color-mix(in srgb, var(--dusk) 25%, transparent); border-radius:999px;
+    background:#fff; color:var(--ink);
+  }
+  .sendbtn.whatsapp-send{background:var(--wa-green); color:#fff; border-radius:999px;}
+  .sendbtn.whatsapp-send:hover:not(:disabled){background:color-mix(in srgb, var(--wa-green) 82%, #000);}
 
   /* ---------- wizard theme ---------- */
   .panel-wizard{
@@ -424,6 +441,9 @@
   .panel-wizard .diary-status[data-status="pending"]{color:var(--text-shell-dim);}
   .panel-wizard .diary-status[data-status="recognized"]{color:color-mix(in srgb, var(--gold-bright) 85%, var(--text-shell));}
   .panel-wizard .diary-status[data-status="image"]{color:color-mix(in srgb, var(--dusk-bright) 75%, var(--text-shell));}
+  .panel-wizard .diary-status[data-status="fromhome"]{color:var(--silver-bright);}
+  .panel-wizard .diary-entry-fromhome{padding-inline-start:10px; border-inline-start:2px solid var(--silver);}
+  .panel-wizard .diary-entry-fromhome .diary-entry-text{color:var(--silver-bright); font-style:italic;}
   .panel-wizard .sketch-frame{background:color-mix(in srgb, #000 32%, var(--plum)); border:1px solid color-mix(in srgb, var(--gold) 35%, transparent);}
   .panel-wizard .inputrow input[type="text"]{
     background:color-mix(in srgb, #000 32%, var(--plum)); color:var(--text-shell);
@@ -469,8 +489,8 @@
     <h1>מטבעות הקסם — קו ישיר בין <em>הוגוורטס</em> לבין הבית</h1>
     <p class="lede">
       שלושה כלים קסומים לתקשורת בין הוגוורטס לבית: זוג הגליאונים המזויפים שהרמיוני כישפה עבור צבא דמבלדור, זוג
-      המראות הדו-כיווניות שסיריוס נתן להארי, ויומן קסום שמעביר כל שורה חדשה ללוח קסם בבית — שם היא מצטלמת ונשלחת
-      כהודעת וואטסאפ למשפחה. בלי ינשופים, בלי אינטרנט, רק קסם.
+      המראות הדו-כיווניות שסיריוס נתן להארי, ויומן קסום דו-כיווני — כל שורה חדשה בו מצטלמת ונשלחת כהודעת וואטסאפ
+      למשפחה, ותשובה שנכתבת בוואטסאפ נכתבת בחזרה על הלוח בבית ביד רובוטית, ומופיעה ביומן. בלי ינשופים, בלי אינטרנט, רק קסם.
     </p>
   </header>
 
@@ -661,7 +681,7 @@
           <div class="mirror-badge" aria-hidden="true">📖</div>
           <div>
             <h2 class="panel-title">היומן הקסום</h2>
-            <p class="panel-sub">כל מה שהתלמיד/ה כותבים או מצירים כאן</p>
+            <p class="panel-sub">כל מה שנכתב כאן, וגם תשובות שמגיעות מהבית</p>
           </div>
         </div>
 
@@ -698,7 +718,7 @@
           <div class="mirror-badge" aria-hidden="true">📋</div>
           <div>
             <h2 class="panel-title">הלוח בבית</h2>
-            <p class="panel-sub">מצטלם אוטומטית ל-15 שניות ונשלח לוואטסאפ המשפחתי</p>
+            <p class="panel-sub">מצטלם ונשלח לוואטסאפ; תשובות מוואטסאפ נכתבות כאן ע"י יד רובוטית</p>
           </div>
         </div>
 
@@ -724,14 +744,19 @@
           <div class="whatsapp-body" id="whatsappBody">
             <p class="whatsapp-empty" id="whatsappEmpty">עדיין אין הודעות</p>
           </div>
+          <div class="inputrow whatsapp-composer">
+            <input type="text" id="whatsappInput" placeholder="כתבו תשובה מהבית…" maxlength="140" />
+            <button type="button" class="sendbtn whatsapp-send" id="whatsappSend" disabled>שלחו ⇠</button>
+          </div>
         </div>
+        <p class="draw-hint">מה שתכתבו כאן תיכתב ע"י יד רובוטית על הלוח, ותופיע ביומן של התלמיד/ה</p>
       </article>
 
     </div>
   </section>
 
   <footer class="page">
-    סימולציה חינוכית-משפחתית בהשראת עולם הארי פוטר, לצורך המחשת רעיון תקשורת בין קוסמים למשפחתם המוגלגית. המראה הדו־צדדית מבקשת הרשאת מצלמה מהדפדפן כדי להציג תמונה חיה, והיומן הקסום הוא הדמיה בלבד — אין חיבור אמיתי לוואטסאפ, ושום תמונה או טקסט לא באמת נשלחים לשום מקום.
+    סימולציה חינוכית-משפחתית בהשראת עולם הארי פוטר, לצורך המחשת רעיון תקשורת בין קוסמים למשפחתם המוגלגית. המראה הדו־צדדית מבקשת הרשאת מצלמה מהדפדפן כדי להציג תמונה חיה, והיומן הקסום — כולל הלוח, הוואטסאפ והיד הרובוטית הכותבת — הוא הדמיה בלבד: אין חיבור אמיתי לוואטסאפ, ושום תמונה או טקסט לא באמת נשלחים לשום מקום.
   </footer>
 </div>
 
@@ -913,7 +938,9 @@
     homeBoardRecog: document.getElementById("homeBoardRecog"),
     homeBoardRing: document.getElementById("homeBoardRing").querySelector("circle"),
     whatsappBody: document.getElementById("whatsappBody"),
-    whatsappEmpty: document.getElementById("whatsappEmpty")
+    whatsappEmpty: document.getElementById("whatsappEmpty"),
+    whatsappInput: document.getElementById("whatsappInput"),
+    whatsappSend: document.getElementById("whatsappSend")
   };
 
   createViewController({
@@ -939,6 +966,7 @@
   var diaryEntries = [];
   var diaryQueue = [];
   var diaryTimers = [];
+  var diaryTyper = null;
   var diaryProcessing = false;
   var RING_CIRCUMFERENCE = 2 * Math.PI * 17;
 
@@ -946,6 +974,14 @@
     diaryEls.empty.style.display = diaryEntries.length ? "none" : "block";
     var html = "";
     diaryEntries.forEach(function(entry){
+      if (entry.direction === "toWizard"){
+        html += '<div class="diary-entry diary-entry-fromhome">' +
+          '<div class="diary-entry-head"><span>' + entry.time + '</span>' +
+          '<span class="diary-status" data-status="fromhome">🦾 נכתב ע"י יד רובוטית מהבית</span></div>' +
+          '<p class="diary-entry-text">' + escapeHtml(entry.text) + '</p>' +
+          '</div>';
+        return;
+      }
       var statusLabel = entry.status === "pending" ? "⏳ ממתין…"
         : entry.status === "recognized" ? "✅ נשלח כטקסט לוואטסאפ"
         : "🖼️ נשלח כתמונה לוואטסאפ";
@@ -1046,14 +1082,17 @@
   function queueDiaryEntry(payload){
     var entry = {
       id: Date.now() + Math.random(),
+      direction: payload.direction || "toHome",
       type: payload.type,
       text: payload.text || "",
       image: payload.image || "",
       time: nowLabel(),
       status: "pending"
     };
-    diaryEntries.push(entry);
-    renderDiaryBook();
+    if (entry.direction === "toHome"){
+      diaryEntries.push(entry);
+      renderDiaryBook();
+    }
     diaryQueue.push(entry);
     processDiaryQueue();
   }
@@ -1061,12 +1100,15 @@
   function processDiaryQueue(){
     if (diaryProcessing || !diaryQueue.length) return;
     diaryProcessing = true;
-    showEntryOnHomeBoard(diaryQueue.shift());
+    var entry = diaryQueue.shift();
+    if (entry.direction === "toWizard") showEntryFromHomeToWizard(entry);
+    else showEntryOnHomeBoard(entry);
   }
 
   function clearDiaryTimers(){
     diaryTimers.forEach(function(t){ clearTimeout(t); });
     diaryTimers = [];
+    if (diaryTyper){ clearInterval(diaryTyper); diaryTyper = null; }
   }
 
   function showEntryOnHomeBoard(entry){
@@ -1123,6 +1165,76 @@
     diaryEls.whatsappBody.scrollTop = diaryEls.whatsappBody.scrollHeight;
   }
 
+  function pushWhatsappOutgoing(text){
+    diaryEls.whatsappEmpty.style.display = "none";
+    var bubble = document.createElement("div");
+    bubble.className = "whatsapp-bubble outgoing";
+    bubble.innerHTML = escapeHtml(text) + '<time>' + nowLabel() + '</time>';
+    diaryEls.whatsappBody.appendChild(bubble);
+    diaryEls.whatsappBody.scrollTop = diaryEls.whatsappBody.scrollHeight;
+  }
+
+  function updateWhatsappSendState(){
+    diaryEls.whatsappSend.disabled = diaryEls.whatsappInput.value.trim() === "";
+  }
+  diaryEls.whatsappInput.addEventListener("input", updateWhatsappSendState);
+  diaryEls.whatsappInput.addEventListener("keydown", function(e){ if (e.key === "Enter") submitWhatsappReply(); });
+  diaryEls.whatsappSend.addEventListener("click", submitWhatsappReply);
+
+  function submitWhatsappReply(){
+    var text = diaryEls.whatsappInput.value.trim();
+    if (!text) return;
+    diaryEls.whatsappInput.value = "";
+    updateWhatsappSendState();
+    pushWhatsappOutgoing(text);
+    queueDiaryEntry({direction:"toWizard", type:"text", text:text});
+  }
+
+  function showEntryFromHomeToWizard(entry){
+    clearDiaryTimers();
+    var DISPLAY_MS = 6000;
+    var WRITE_MS = Math.min(2600, 700 + entry.text.length * 70);
+
+    diaryEls.homeBoard.setAttribute("data-state","visible");
+    diaryEls.homeBoardRecog.textContent = "";
+    diaryEls.homeBoardCamera.textContent = '🦾 יד רובוטית כותבת על הלוח…';
+    diaryEls.homeBoardContent.innerHTML = '<p class="homeboard-text" id="handwriteText"></p>';
+
+    diaryEls.homeBoardRing.style.transition = "none";
+    diaryEls.homeBoardRing.style.strokeDasharray = String(RING_CIRCUMFERENCE);
+    diaryEls.homeBoardRing.style.strokeDashoffset = "0";
+    void diaryEls.homeBoardRing.getBoundingClientRect();
+    diaryEls.homeBoardRing.style.transition = "stroke-dashoffset " + (DISPLAY_MS/1000) + "s linear";
+    diaryEls.homeBoardRing.style.strokeDashoffset = String(RING_CIRCUMFERENCE);
+
+    var target = entry.text;
+    var shown = 0;
+    var textEl = document.getElementById("handwriteText");
+    var stepMs = Math.max(35, WRITE_MS / Math.max(target.length, 1));
+    diaryTyper = setInterval(function(){
+      shown++;
+      textEl.textContent = target.slice(0, shown);
+      if (shown >= target.length){
+        clearInterval(diaryTyper);
+        diaryTyper = null;
+      }
+    }, stepMs);
+
+    diaryTimers.push(setTimeout(function(){
+      diaryEls.homeBoardCamera.textContent = "✅ נכתב על הלוח";
+      diaryEls.homeBoardRecog.textContent = 'נשלח ליומן של התלמיד/ה 📖';
+      diaryEntries.push(entry);
+      renderDiaryBook();
+    }, WRITE_MS + 250));
+
+    diaryTimers.push(setTimeout(function(){
+      diaryEls.homeBoard.setAttribute("data-state","idle");
+      diaryEls.homeBoardContent.innerHTML = "";
+      diaryProcessing = false;
+      processDiaryQueue();
+    }, DISPLAY_MS));
+  }
+
   var diaryConfirmTimer = null;
   diaryEls.clear.addEventListener("click", function(){
     if (diaryEls.clear.getAttribute("data-confirm") === "true"){
@@ -1136,6 +1248,8 @@
       diaryEls.homeBoardRecog.textContent = "";
       diaryEls.whatsappBody.querySelectorAll(".whatsapp-bubble").forEach(function(b){ b.remove(); });
       diaryEls.whatsappEmpty.style.display = "block";
+      diaryEls.whatsappInput.value = "";
+      updateWhatsappSendState();
       renderDiaryBook();
       diaryEls.clear.removeAttribute("data-confirm");
       diaryEls.clear.textContent = "🧹 נקו את היומן";
@@ -1151,6 +1265,7 @@
   });
 
   updateDiarySendState();
+  updateWhatsappSendState();
   renderDiaryBook();
 
   /* ---------- drawing ---------- */
