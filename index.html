@@ -426,6 +426,10 @@
   }
   .sendbtn.whatsapp-send{background:var(--wa-green); color:#fff; border-radius:999px;}
   .sendbtn.whatsapp-send:hover:not(:disabled){background:color-mix(in srgb, var(--wa-green) 82%, #000);}
+  .whatsapp-reject{
+    font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    font-size:11.5px; color:var(--ember); margin:0; padding:0 12px 8px;
+  }
 
   /* ---------- wizard theme ---------- */
   .panel-wizard{
@@ -713,8 +717,8 @@
 
           <div class="inputrow">
             <button type="button" class="sketch-toggle" id="sketchToggle" aria-pressed="false" title="הוסיפו שרבוט במקום טקסט">✏️</button>
-            <button type="button" class="sketch-toggle" id="imageUploadBtn" title="הדביקו תמונה מהמחשב">🖼️</button>
-            <input type="file" id="diaryImageInput" accept="image/*" hidden />
+            <button type="button" class="sketch-toggle" id="imageUploadBtn" title="הדביקו תמונה או GIF זז מהמחשב">🖼️</button>
+            <input type="file" id="diaryImageInput" accept="image/png,image/jpeg,image/gif,image/webp,image/bmp" hidden />
             <input type="text" id="diaryInput" placeholder="כתבו שורה חדשה ביומן…" maxlength="140" />
             <button type="button" class="sendbtn" id="diarySend" disabled>הוסיפו ⇠</button>
           </div>
@@ -759,13 +763,14 @@
             <p class="whatsapp-empty" id="whatsappEmpty">עדיין אין הודעות</p>
           </div>
           <div class="inputrow whatsapp-composer">
-            <button type="button" class="attach-btn" id="whatsappAttach" title="שלחו תמונה" aria-label="שלחו תמונה">➕</button>
-            <input type="file" id="whatsappImageInput" accept="image/*" hidden />
+            <button type="button" class="attach-btn" id="whatsappAttach" title="שלחו תמונה (לא כולל GIF)" aria-label="שלחו תמונה">➕</button>
+            <input type="file" id="whatsappImageInput" accept="image/png,image/jpeg,image/webp,image/bmp" hidden />
             <input type="text" id="whatsappInput" placeholder="כתבו תשובה מהבית…" maxlength="140" />
             <button type="button" class="sendbtn whatsapp-send" id="whatsappSend" disabled>שלחו ⇠</button>
           </div>
+          <p class="whatsapp-reject" id="whatsappReject" hidden>🚫 מצלמות מוגלגים לא יכולות לצלם תמונות קסומות זזות — GIF אפשר לשלוח רק מהתלמיד/ה להביתה</p>
         </div>
-        <p class="draw-hint">מה שתכתבו או תצרפו כאן ייכתב או יודפס ויודבק ע"י יד רובוטית על הלוח, ויופיע ביומן של התלמיד/ה</p>
+        <p class="draw-hint">מה שתכתבו או תצרפו כאן (תמונות רגילות בלבד, לא GIF) ייכתב או יודפס ויודבק ע"י יד רובוטית על הלוח, ויופיע ביומן של התלמיד/ה</p>
       </article>
 
     </div>
@@ -960,7 +965,8 @@
     whatsappBody: document.getElementById("whatsappBody"),
     whatsappEmpty: document.getElementById("whatsappEmpty"),
     whatsappInput: document.getElementById("whatsappInput"),
-    whatsappSend: document.getElementById("whatsappSend")
+    whatsappSend: document.getElementById("whatsappSend"),
+    whatsappReject: document.getElementById("whatsappReject")
   };
 
   createViewController({
@@ -1007,6 +1013,7 @@
       }
       var statusLabel = entry.status === "pending" ? "⏳ ממתין…"
         : entry.status === "recognized" ? "✅ נשלח כטקסט לוואטסאפ"
+        : entry.isGif ? "🎞️ נשלח כפריים קפוא — מוגלגים לא רואים תמונות זזות"
         : "🖼️ נשלח כתמונה לוואטסאפ";
       html += '<div class="diary-entry">' +
         '<div class="diary-entry-head"><span>' + entry.time + '</span>' +
@@ -1109,6 +1116,8 @@
       type: payload.type,
       text: payload.text || "",
       image: payload.image || "",
+      staticImage: payload.staticImage || "",
+      isGif: !!payload.isGif,
       time: nowLabel(),
       status: "pending"
     };
@@ -1160,7 +1169,7 @@
     diaryEls.homeBoardCamera.textContent = "📷 מצלמת הבית מצלמת את הלוח…";
     diaryEls.homeBoardContent.innerHTML = entry.type === "text"
       ? '<p class="homeboard-text">' + escapeHtml(entry.text) + '</p>'
-      : '<img class="homeboard-sketch" src="' + entry.image + '" alt="תמונה מהיומן" />';
+      : '<img class="homeboard-sketch" src="' + (entry.isGif ? entry.staticImage : entry.image) + '" alt="תמונה מהיומן" />';
     startRing(DISPLAY_MS);
 
     diaryTimers.push(setTimeout(function(){
@@ -1178,7 +1187,9 @@
       diaryEls.homeBoardCamera.textContent = recognized ? "✅ טקסט זוהה" : "🖼️ לא זוהה טקסט ברור";
       diaryEls.homeBoardRecog.textContent = recognized
         ? "נשלח כטקסט לוואטסאפ של הבית"
-        : "נשלחת תמונה לוואטסאפ של הבית";
+        : entry.isGif
+          ? "תמונות קוסמים זזות לא נראות למוגלגים — נשלח רק הפריים הראשון"
+          : "נשלחת תמונה לוואטסאפ של הבית";
       renderDiaryBook();
       pushWhatsappMessage(entry, recognized);
     }, 3400));
@@ -1190,7 +1201,8 @@
     diaryEls.whatsappEmpty.style.display = "none";
     var bubble = document.createElement("div");
     bubble.className = "whatsapp-bubble";
-    bubble.innerHTML = (recognized ? escapeHtml(entry.text) : '<img src="' + entry.image + '" alt="תמונה מהלוח" />') +
+    var imgSrc = entry.isGif ? entry.staticImage : entry.image;
+    bubble.innerHTML = (recognized ? escapeHtml(entry.text) : '<img src="' + imgSrc + '" alt="תמונה מהלוח" />') +
       '<time>' + entry.time + '</time>';
     diaryEls.whatsappBody.appendChild(bubble);
     diaryEls.whatsappBody.scrollTop = diaryEls.whatsappBody.scrollHeight;
@@ -1233,14 +1245,37 @@
   function readImageFile(file, onLoaded){
     if (!file || file.type.indexOf("image/") !== 0) return;
     var reader = new FileReader();
-    reader.onload = function(){ onLoaded(reader.result); };
+    reader.onload = function(){ onLoaded(reader.result, file); };
     reader.readAsDataURL(file);
+  }
+
+  function extractFirstFrame(dataUrl, callback){
+    var img = new Image();
+    img.onload = function(){
+      var canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth || 1;
+      canvas.height = img.naturalHeight || 1;
+      canvas.getContext("2d").drawImage(img, 0, 0);
+      callback(canvas.toDataURL("image/png"));
+    };
+    img.src = dataUrl;
+  }
+
+  var whatsappRejectTimer = null;
+  function showWhatsappReject(){
+    diaryEls.whatsappReject.hidden = false;
+    clearTimeout(whatsappRejectTimer);
+    whatsappRejectTimer = setTimeout(function(){ diaryEls.whatsappReject.hidden = true; }, 4500);
   }
 
   diaryEls.whatsappAttach.addEventListener("click", function(){ diaryEls.whatsappImageInput.click(); });
   diaryEls.whatsappImageInput.addEventListener("change", function(){
     var file = diaryEls.whatsappImageInput.files && diaryEls.whatsappImageInput.files[0];
     diaryEls.whatsappImageInput.value = "";
+    if (file && file.type === "image/gif"){
+      showWhatsappReject();
+      return;
+    }
     readImageFile(file, function(dataUrl){
       pushWhatsappOutgoingImage(dataUrl);
       queueDiaryEntry({direction:"toWizard", type:"image", image:dataUrl});
@@ -1251,8 +1286,14 @@
   diaryEls.diaryImageInput.addEventListener("change", function(){
     var file = diaryEls.diaryImageInput.files && diaryEls.diaryImageInput.files[0];
     diaryEls.diaryImageInput.value = "";
-    readImageFile(file, function(dataUrl){
-      queueDiaryEntry({type:"image", image:dataUrl});
+    readImageFile(file, function(dataUrl, pickedFile){
+      if (pickedFile.type === "image/gif"){
+        extractFirstFrame(dataUrl, function(staticUrl){
+          queueDiaryEntry({type:"image", image:dataUrl, staticImage:staticUrl, isGif:true});
+        });
+      } else {
+        queueDiaryEntry({type:"image", image:dataUrl});
+      }
     });
   });
 
