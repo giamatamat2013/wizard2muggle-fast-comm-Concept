@@ -844,7 +844,7 @@ window.APP_CONFIG = {
             <video id="videoWizard" autoplay playsinline muted></video>
             <div class="mirror-placeholder"><span class="icon">🪞</span>המראה כבויה</div>
           </div>
-          <p class="draw-hint">אמרו את שם בן-השיח או פשוט פתחו את המצלמה — הפנים שלכם יופיעו בשתי המראות יחד</p>
+          <p class="draw-hint">הצטרפו לחדר ובחרו תפקיד, ואז פתחו מצלמה — הצד השני יראה אתכם דרך המראה שלו בזמן אמת</p>
         </div>
       </article>
 
@@ -868,7 +868,7 @@ window.APP_CONFIG = {
             <video id="videoMuggle" autoplay playsinline muted></video>
             <div class="mirror-placeholder"><span class="icon">🪞</span>המראה כבויה</div>
           </div>
-          <p class="draw-hint">כשהמצלמה פתוחה, אותה תמונה מופיעה גם על המראה של הוגוורטס</p>
+          <p class="draw-hint">כשהצד השני פותח מצלמה, התמונה שלו מופיעה כאן דרך המראה — בזמן אמת</p>
         </div>
       </article>
 
@@ -1360,7 +1360,20 @@ window.APP_CONFIG = {
     input.value = localStorage.getItem("mk_room") || "";
     join.addEventListener("click", function(){ enterRoom(input.value); });
     input.addEventListener("keydown", function(e){ if (e.key === "Enter") enterRoom(input.value); });
+    var genConfirmTimer = null;
     if (gen) gen.addEventListener("click", function(){
+      if (currentRoom && gen.getAttribute("data-confirm") !== "true"){
+        gen.setAttribute("data-confirm","true");
+        gen.textContent = "בטוחים? זה יעזוב את חדר " + currentRoom;
+        genConfirmTimer = setTimeout(function(){
+          gen.removeAttribute("data-confirm");
+          gen.textContent = "🎲 קוד חדש";
+        }, 3000);
+        return;
+      }
+      clearTimeout(genConfirmTimer);
+      gen.removeAttribute("data-confirm");
+      gen.textContent = "🎲 קוד חדש";
       var chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", code = "";
       for (var i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
       input.value = code; enterRoom(code);
@@ -1414,11 +1427,11 @@ window.APP_CONFIG = {
     onLayout: function(){ sizeAllCanvases(); renderStrokes(); }
   }));
 
-  viewControllers.push(createViewController({
+  createViewController({
     board: els.boardMirror, viewSplit: els.viewSplitMirror, viewSeparate: els.viewSeparateMirror,
     sideSwitchWrap: els.sideSwitchWrapMirror, showWizard: els.showWizardMirror, showMuggle: els.showMuggleMirror,
     panelWizard: els.panelWizardMirror, panelMuggle: els.panelMuggleMirror
-  }));
+  });
 
   /* ---------- tabs ---------- */
   var tabButtons = document.querySelectorAll(".tab[data-tab]");
@@ -1449,6 +1462,88 @@ window.APP_CONFIG = {
     els.mirrorStatus.setAttribute("data-state", state);
   }
 
+  /* two-way mirror = a real WebRTC video call between the two devices, signaled through Firebase.
+     Free public STUN only (no TURN) — usually fine on home wifi, may fail on some cellular networks. */
+  var mirrorPC = null;
+  var mirrorCandQueue = [];
+  var mirrorSignalRefs = [];
+  var MIRROR_ICE_SERVERS = [
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun1.l.google.com:19302" }
+  ];
+
+  function myMirrorVideo(){ return mySide === "muggle" ? els.videoMuggle : els.videoWizard; }
+  function myMirrorFrame(){ return mySide === "muggle" ? els.frameMuggle : els.frameWizard; }
+  function peerMirrorVideo(){ return mySide === "muggle" ? els.videoWizard : els.videoMuggle; }
+  function peerMirrorFrame(){ return mySide === "muggle" ? els.frameWizard : els.frameMuggle; }
+
+  function teardownMirrorCall(){
+    mirrorSignalRefs.forEach(function(r){ r.off(); });
+    mirrorSignalRefs = [];
+    if (mirrorPC){ mirrorPC.close(); mirrorPC = null; }
+    mirrorCandQueue = [];
+    var pf = peerMirrorFrame();
+    if (pf) pf.setAttribute("data-streaming","false");
+  }
+
+  function startMirrorCall(){
+    var pc = new RTCPeerConnection({ iceServers: MIRROR_ICE_SERVERS });
+    mirrorPC = pc;
+    mirrorStream.getTracks().forEach(function(t){ pc.addTrack(t, mirrorStream); });
+
+    pc.onicecandidate = function(e){
+      if (e.candidate) db.ref("rooms/" + currentRoom + "/call/candidates/" + mySide).push(e.candidate.toJSON());
+    };
+    pc.ontrack = function(e){
+      peerMirrorVideo().srcObject = e.streams[0];
+      peerMirrorFrame().setAttribute("data-streaming","true");
+      setMirrorStatus("מחוברים — רואים את הצד השני בזמן אמת", "ok");
+    };
+
+    var otherSide = mySide === "wizard" ? "muggle" : "wizard";
+    var callRef = db.ref("rooms/" + currentRoom + "/call");
+    var candRef = db.ref("rooms/" + currentRoom + "/call/candidates/" + otherSide);
+    candRef.on("child_added", function(snap){
+      var cand = snap.val();
+      if (pc.remoteDescription) pc.addIceCandidate(new RTCIceCandidate(cand)).catch(function(){});
+      else mirrorCandQueue.push(cand);
+    });
+    mirrorSignalRefs.push(candRef);
+
+    function flushCandidates(){
+      mirrorCandQueue.forEach(function(c){ pc.addIceCandidate(new RTCIceCandidate(c)).catch(function(){}); });
+      mirrorCandQueue = [];
+    }
+
+    if (mySide === "wizard"){
+      pc.createOffer().then(function(offer){ return pc.setLocalDescription(offer); }).then(function(){
+        callRef.child("offer").set({ sdp: pc.localDescription.sdp, type: pc.localDescription.type });
+      });
+      var answerRef = callRef.child("answer");
+      answerRef.on("value", function(snap){
+        var val = snap.val();
+        if (val && !pc.currentRemoteDescription){
+          pc.setRemoteDescription(new RTCSessionDescription(val)).then(flushCandidates);
+        }
+      });
+      mirrorSignalRefs.push(answerRef);
+    } else {
+      var offerRef = callRef.child("offer");
+      offerRef.on("value", function(snap){
+        var val = snap.val();
+        if (val && !pc.currentRemoteDescription){
+          pc.setRemoteDescription(new RTCSessionDescription(val)).then(flushCandidates).then(function(){
+            return pc.createAnswer();
+          }).then(function(answer){ return pc.setLocalDescription(answer); }).then(function(){
+            callRef.child("answer").set({ sdp: pc.localDescription.sdp, type: pc.localDescription.type });
+          });
+        }
+      });
+      mirrorSignalRefs.push(offerRef);
+    }
+    setMirrorStatus("מצלמה פתוחה — ממתינים לצד השני…", "pending");
+  }
+
   function startCamera(){
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
       setMirrorStatus("הדפדפן הזה לא תומך בגישה למצלמה.", "error");
@@ -1457,15 +1552,18 @@ window.APP_CONFIG = {
     setMirrorStatus("מבקשים הרשאת מצלמה…", "pending");
     navigator.mediaDevices.getUserMedia({video:true, audio:false}).then(function(stream){
       mirrorStream = stream;
-      els.videoWizard.srcObject = stream;
-      els.videoMuggle.srcObject = stream;
-      els.frameWizard.setAttribute("data-streaming","true");
-      els.frameMuggle.setAttribute("data-streaming","true");
+      myMirrorVideo().srcObject = stream;
+      myMirrorFrame().setAttribute("data-streaming","true");
       els.cameraToggle.textContent = "⏹ סגרו מצלמה";
       els.cameraToggle.setAttribute("data-live","true");
-      setMirrorStatus("המראה פעילה — שני הצדדים רואים את אותה תמונה", "ok");
-      glow(els.frameWizard);
-      glow(els.frameMuggle);
+      glow(myMirrorFrame());
+      if (db && currentRoom && mySide){
+        startMirrorCall();
+      } else {
+        peerMirrorVideo().srcObject = stream;
+        peerMirrorFrame().setAttribute("data-streaming","true");
+        setMirrorStatus("המראה פעילה (הדגמה מקומית) — הצטרפו לחדר ובחרו תפקיד כדי לראות את הצד השני באמת", "ok");
+      }
     }).catch(function(err){
       setMirrorStatus("לא הצלחנו לגשת למצלמה. ודאו שאישרתם הרשאת מצלמה בדפדפן ונסו שוב.", "error");
     });
@@ -1476,6 +1574,7 @@ window.APP_CONFIG = {
       mirrorStream.getTracks().forEach(function(track){ track.stop(); });
       mirrorStream = null;
     }
+    teardownMirrorCall();
     els.videoWizard.srcObject = null;
     els.videoMuggle.srcObject = null;
     els.frameWizard.setAttribute("data-streaming","false");
@@ -1483,6 +1582,7 @@ window.APP_CONFIG = {
     els.cameraToggle.textContent = "📷 פתחו מצלמה";
     els.cameraToggle.removeAttribute("data-live");
     setMirrorStatus("המראה כבויה", "idle");
+    if (db && currentRoom) db.ref("rooms/" + currentRoom + "/call").remove();
   }
 
   els.cameraToggle.addEventListener("click", function(){
