@@ -391,6 +391,18 @@
     font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; font-size:11px; opacity:.75;
   }
   .owl-entry-text{font-size:15.5px; line-height:1.5;}
+  .owl-entry-image{max-width:200px; max-height:150px; border-radius:8px; display:block; border:1px solid rgba(92,61,31,.35); margin-top:2px;}
+  .owl-attach-preview{
+    display:flex; align-items:center; gap:10px; font-size:12px;
+    font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  .owl-attach-preview[hidden]{display:none;}
+  .owl-attach-preview img{width:44px; height:44px; object-fit:cover; border-radius:6px; border:1px solid rgba(92,61,31,.4); flex-shrink:0;}
+  .owl-attach-preview button{
+    border:none; background:transparent; color:var(--ember); cursor:pointer; font-family:inherit; font-size:12px;
+    text-decoration:underline; padding:0;
+  }
+  .owl-attach-preview button:focus-visible{outline:2px solid var(--focus); outline-offset:2px;}
   .owl-status{font-size:11px; white-space:nowrap; font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;}
   .owl-status[data-status="flying"]{color:#8a5a2c; font-weight:600;}
   .owl-status[data-status="delivered"]{color:color-mix(in srgb, var(--dusk) 70%, #4a3315); font-weight:600;}
@@ -400,6 +412,55 @@
   .panel-wizard .owl-badge{box-shadow:0 0 0 3px color-mix(in srgb, var(--gold) 35%, transparent), 0 6px 16px -6px #000;}
   .panel-muggle .owl-scroll{outline:2px solid color-mix(in srgb, var(--dusk) 35%, transparent); outline-offset:2px;}
   .panel-muggle .owl-badge{box-shadow:0 0 0 3px color-mix(in srgb, var(--dusk) 30%, transparent), 0 6px 16px -8px #000;}
+
+  /* patronus post board — like the owls, different design: spoken messages, delivered fast, read aloud */
+  .patronus-badge{
+    position:relative; width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    flex-shrink:0; font-size:26px;
+    background:radial-gradient(circle at 32% 28%, #ffffff, var(--silver-bright) 45%, var(--dusk-bright) 100%);
+    box-shadow:0 0 14px 2px rgba(180,220,255,.55), 0 6px 16px -6px #000;
+  }
+  .patronus-badge[data-glow="true"]::after{
+    content:""; position:absolute; inset:-6px; border-radius:50%;
+    box-shadow:0 0 0 0 #cfe9ff;
+    animation:coinring 1.1s ease;
+    pointer-events:none;
+  }
+  @media (prefers-reduced-motion: reduce){
+    .patronus-badge[data-glow="true"]::after{animation:none;}
+  }
+  .patronuswrap{flex:1; display:flex; flex-direction:column; gap:10px; min-height:0;}
+  .patronus-scroll{
+    flex:1; min-height:220px; max-height:360px; overflow-y:auto; padding:16px 18px;
+    border-radius:16px; position:relative;
+    background:
+      radial-gradient(220px 140px at 50% 0%, rgba(180,220,255,.35), transparent 70%),
+      linear-gradient(180deg, rgba(20,30,45,.55), rgba(10,14,22,.75));
+    border:1px solid rgba(180,220,255,.35);
+    box-shadow: inset 0 0 30px rgba(140,190,255,.18);
+    color:#eaf4ff;
+    animation:patronuspulse 3.2s ease-in-out infinite;
+  }
+  @keyframes patronuspulse{
+    0%,100%{box-shadow: inset 0 0 30px rgba(140,190,255,.18), 0 0 0 0 rgba(140,190,255,0);}
+    50%{box-shadow: inset 0 0 34px rgba(140,190,255,.28), 0 0 22px 2px rgba(140,190,255,.22);}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .patronus-scroll{animation:none;}
+  }
+  .patronus-empty{margin:auto; opacity:.7; font-size:13.5px; text-align:center; font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;}
+  .patronus-entry{display:flex; flex-direction:column; gap:3px; margin-bottom:13px; padding-inline-start:10px; border-inline-start:2px solid rgba(180,220,255,.45);}
+  .patronus-entry:last-child{margin-bottom:0;}
+  .patronus-entry-head{
+    display:flex; align-items:baseline; justify-content:space-between; gap:10px;
+    font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; font-size:11px; opacity:.8;
+  }
+  .patronus-entry-text{font-size:15.5px; line-height:1.5; font-style:italic;}
+  .patronus-status{font-size:11px; white-space:nowrap; font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;}
+  .patronus-status[data-status="casting"]{color:#9fd0ff; font-weight:600;}
+  .patronus-status[data-status="delivered"]{color:#bfe6c9; font-weight:600;}
+  .sendbtn.patronus-send{background:linear-gradient(135deg,#eaf4ff,#9fc9ff); color:#0d2033;}
+  .sendbtn.patronus-send:hover:not(:disabled){background:linear-gradient(135deg,#ffffff,#bcdcff);}
 
   /* diary book (wizard side) */
   .diarywrap{flex:1; display:flex; flex-direction:column; gap:10px; min-height:0;}
@@ -602,9 +663,9 @@
     <p class="eyebrow">סימולציה משפחתית</p>
     <h1>מטבעות הקסם — קו ישיר בין <em>הוגוורטס</em> לבין הבית</h1>
     <p class="lede">
-      חמישה כלים קסומים לתקשורת בין הוגוורטס לבית: זוג הגליאונים המזויפים שהרמיוני כישפה עבור צבא דמבלדור, זוג
+      שישה כלים קסומים לתקשורת בין הוגוורטס לבית: זוג הגליאונים המזויפים שהרמיוני כישפה עבור צבא דמבלדור, זוג
       המראות הדו-כיווניות שסיריוס נתן להארי, אח פלו חי עם תמונה וקול, יומן קסום דו-כיווני — כל שורה חדשה בו מצטלמת ונשלחת כהודעת וואטסאפ
-      למשפחה, ותשובה שנכתבת בוואטסאפ נכתבת בחזרה על הלוח בבית ביד רובוטית, ומופיעה ביומן — ודואר ינשופים: כותבים מכתב, שולחים אותו, והוא נוחת בצד השני כעבור דקה בדיוק. בלי אינטרנט, רק קסם.
+      למשפחה, ותשובה שנכתבת בוואטסאפ נכתבת בחזרה על הלוח בבית ביד רובוטית, ומופיעה ביומן — דואר ינשופים: כותבים מכתב (עם תמונה מצורפת אם רוצים), שולחים אותו, והוא נוחת בצד השני כעבור דקה בדיוק — ופטרונוס מדבר: קסם ששמור לקוסמים בלבד — התלמיד/ה שולח/ת הודעה קצרה שדוהרת מהר בהרבה מינשוף, ונאמרת בקול בבית כשהיא מגיעה, אך המשפחה המוגלגית יכולה רק לקבל ולא לשגר פטרונוס בעצמה. בלי אינטרנט, רק קסם.
     </p>
   </header>
 
@@ -623,6 +684,9 @@
     </button>
     <button class="tab" type="button" data-tab="owl" data-active="false" aria-selected="false">
       <span class="tab-icon">🦉</span> דואר ינשופים
+    </button>
+    <button class="tab" type="button" data-tab="patronus" data-active="false" aria-selected="false">
+      <span class="tab-icon">🦌</span> פטרונוס מדבר
     </button>
   </nav>
 
@@ -980,7 +1044,13 @@
             <p class="owl-empty" id="owlEmptyWizard">אין עדיין מכתבים — כתבו ושלחו ינשוף</p>
             <div id="owlEntriesWizard"></div>
           </div>
+          <div class="owl-attach-preview" id="owlAttachPreviewWizard" hidden>
+            <img id="owlAttachPreviewImgWizard" alt="תמונה מצורפת" />
+            <button type="button" id="owlAttachRemoveWizard">✕ הסירו תמונה</button>
+          </div>
           <div class="inputrow">
+            <button type="button" class="attach-btn" id="owlAttachWizard" title="צרפו תמונה למכתב" aria-label="צרפו תמונה">📎</button>
+            <input type="file" id="owlImageInputWizard" accept="image/png,image/jpeg,image/webp,image/bmp,image/gif" hidden />
             <input type="text" id="owlInputWizard" placeholder="כתבו מכתב לבית…" maxlength="200" />
             <button type="button" class="sendbtn owl-send" id="owlSendWizard" disabled>שלחו ינשוף 🦉</button>
           </div>
@@ -1007,7 +1077,13 @@
             <p class="owl-empty" id="owlEmptyMuggle">אין עדיין מכתבים — כתבו ושלחו ינשוף</p>
             <div id="owlEntriesMuggle"></div>
           </div>
+          <div class="owl-attach-preview" id="owlAttachPreviewMuggle" hidden>
+            <img id="owlAttachPreviewImgMuggle" alt="תמונה מצורפת" />
+            <button type="button" id="owlAttachRemoveMuggle">✕ הסירו תמונה</button>
+          </div>
           <div class="inputrow">
+            <button type="button" class="attach-btn" id="owlAttachMuggle" title="צרפו תמונה למכתב" aria-label="צרפו תמונה">📎</button>
+            <input type="file" id="owlImageInputMuggle" accept="image/png,image/jpeg,image/webp,image/bmp,image/gif" hidden />
             <input type="text" id="owlInputMuggle" placeholder="כתבו מכתב להוגוורטס…" maxlength="200" />
             <button type="button" class="sendbtn owl-send" id="owlSendMuggle" disabled>שלחו ינשוף 🦉</button>
           </div>
@@ -1017,8 +1093,76 @@
     </div>
   </section>
 
+  <section class="tabpanel-shell" data-tab="patronus" hidden>
+
+    <div class="controls">
+      <div class="controls-group">
+        <div class="segmented" role="group" aria-label="אופן תצוגה – פטרונוס מדבר">
+          <button type="button" id="viewSplitPatronus" aria-pressed="true">מסך מפוצל</button>
+          <button type="button" id="viewSeparatePatronus" aria-pressed="false">כל צד בנפרד</button>
+        </div>
+        <div class="segmented" role="group" aria-label="החלפת צד – פטרונוס מדבר" id="sideSwitchWrapPatronus" style="display:none;">
+          <button type="button" id="showWizardPatronus" aria-pressed="true">🏰 הוגוורטס</button>
+          <button type="button" id="showMugglePatronus" aria-pressed="false">🏠 הבית</button>
+        </div>
+      </div>
+      <button type="button" class="clear-btn" id="clearPatronus">🧹 נקו הודעות</button>
+    </div>
+
+    <div class="board" id="boardPatronus" data-view="split">
+
+      <!-- WIZARD PATRONUS -->
+      <article class="panel panel-wizard" id="panelWizardPatronus" data-hidden="false">
+        <div class="panel-head">
+          <div class="patronus-badge" id="patronusBadgeWizard" aria-hidden="true">🦌</div>
+          <div>
+            <h2 class="panel-title">הוגוורטס</h2>
+            <p class="panel-sub">כשפו את הפטרונוס וילחשו לו הודעה</p>
+          </div>
+        </div>
+
+        <div class="patronuswrap">
+          <div class="patronus-scroll" id="patronusScrollWizard" aria-live="polite">
+            <p class="patronus-empty" id="patronusEmptyWizard">אין עדיין הודעות — כתבו ושלחו פטרונוס</p>
+            <div id="patronusEntriesWizard"></div>
+          </div>
+          <div class="inputrow">
+            <input type="text" id="patronusInputWizard" placeholder="לחשו הודעה לפטרונוס…" maxlength="200" />
+            <button type="button" class="sendbtn patronus-send" id="patronusSendWizard" disabled>שלחו פטרונוס 🦌</button>
+          </div>
+        </div>
+      </article>
+
+      <!-- SEAM -->
+      <div class="seam" aria-hidden="true">
+        <div class="seam-line"><span class="seam-spark"></span></div>
+      </div>
+
+      <!-- MUGGLE PATRONUS -->
+      <article class="panel panel-muggle" id="panelMugglePatronus" data-hidden="false">
+        <div class="panel-head">
+          <div class="patronus-badge" id="patronusBadgeMuggle" aria-hidden="true">🦌</div>
+          <div>
+            <h2 class="panel-title">הבית</h2>
+            <p class="panel-sub">הפטרונוס דוהר פנימה ואומר את ההודעה בקול</p>
+          </div>
+        </div>
+
+        <div class="patronuswrap">
+          <div class="patronus-scroll" id="patronusScrollMuggle" aria-live="polite">
+            <p class="patronus-empty" id="patronusEmptyMuggle">אין עדיין הודעות — פטרונוס יגיע לכאן כשיישלח מהוגוורטס</p>
+            <div id="patronusEntriesMuggle"></div>
+          </div>
+          <p class="draw-hint">מוגלגים לא יודעים לכשף פטרונוס — רק מקבלים כאן הודעות, לא שולחים</p>
+        </div>
+      </article>
+
+    </div>
+    <p class="draw-hint" style="padding:0 4px;">בניגוד לינשוף האיטי, הפטרונוס דוהר מהר — וכשהוא מגיע, הוא אומר את ההודעה בקול רם (ללא תמונות, רק דיבור)</p>
+  </section>
+
   <footer class="page">
-    סימולציה חינוכית-משפחתית בהשראת עולם הארי פוטר, לצורך המחשת רעיון תקשורת בין קוסמים למשפחתם המוגלגית. המראה הדו־צדדית והאח פלו מבקשות הרשאת מצלמה (והאח פלו גם מיקרופון) מהדפדפן כדי להציג תמונה חיה — באח פלו הלהבות אף מגיבות לעוצמת הקול שלכם, אך שום שמע לא באמת מושמע לצד השני, שכן זו הדגמה על מכשיר אחד בלבד. היומן הקסום — כולל הלוח, הוואטסאפ והיד הרובוטית הכותבת — ודואר הינשופים הם הדמיה בלבד: אין חיבור אמיתי לוואטסאפ, מכתב ה"ינשוף" ממתין 60 שניות בצד השולח לפני שהוא "נוחת" בצד השני, ושום תמונה, טקסט או קול לא באמת נשלחים לשום מקום.
+    סימולציה חינוכית-משפחתית בהשראת עולם הארי פוטר, לצורך המחשת רעיון תקשורת בין קוסמים למשפחתם המוגלגית. המראה הדו־צדדית והאח פלו מבקשות הרשאת מצלמה (והאח פלו גם מיקרופון) מהדפדפן כדי להציג תמונה חיה — באח פלו הלהבות אף מגיבות לעוצמת הקול שלכם, אך שום שמע לא באמת מושמע לצד השני, שכן זו הדגמה על מכשיר אחד בלבד. היומן הקסום — כולל הלוח, הוואטסאפ והיד הרובוטית הכותבת — דואר הינשופים והפטרונוס המדבר הם הדמיה בלבד: אין חיבור אמיתי לוואטסאפ, מכתב ה"ינשוף" (עם או בלי תמונה מצורפת) ממתין 60 שניות בצד השולח לפני שהוא "נוחת" בצד השני, הודעת הפטרונוס ממתינה כ-5 שניות בלבד ונקראת בקול על-ידי הדפדפן (Web Speech API) כשהיא "מגיעה", ושום תמונה, טקסט או קול לא באמת נשלחים לשום מקום.
   </footer>
 </div>
 
@@ -1764,7 +1908,17 @@
     inputWizard: document.getElementById("owlInputWizard"),
     inputMuggle: document.getElementById("owlInputMuggle"),
     sendWizard: document.getElementById("owlSendWizard"),
-    sendMuggle: document.getElementById("owlSendMuggle")
+    sendMuggle: document.getElementById("owlSendMuggle"),
+    attachWizard: document.getElementById("owlAttachWizard"),
+    attachMuggle: document.getElementById("owlAttachMuggle"),
+    imageInputWizard: document.getElementById("owlImageInputWizard"),
+    imageInputMuggle: document.getElementById("owlImageInputMuggle"),
+    attachPreviewWizard: document.getElementById("owlAttachPreviewWizard"),
+    attachPreviewMuggle: document.getElementById("owlAttachPreviewMuggle"),
+    attachPreviewImgWizard: document.getElementById("owlAttachPreviewImgWizard"),
+    attachPreviewImgMuggle: document.getElementById("owlAttachPreviewImgMuggle"),
+    attachRemoveWizard: document.getElementById("owlAttachRemoveWizard"),
+    attachRemoveMuggle: document.getElementById("owlAttachRemoveMuggle")
   };
 
   createViewController({
@@ -1776,8 +1930,17 @@
   var OWL_FLIGHT_MS = 60000;
   var owlLetters = [];
   var owlTickTimer = null;
+  var owlStagedImage = {wizard:"", muggle:""};
 
   function owlSideLabel(side){ return side === "wizard" ? "הוגוורטס" : "הבית"; }
+  function owlToLabel(side){ return side === "wizard" ? "להוגוורטס" : "לבית"; }
+
+  function owlEntryBody(l){
+    var body = "";
+    if (l.image) body += '<img class="owl-entry-image" src="' + l.image + '" alt="תמונה מצורפת למכתב" />';
+    if (l.text) body += '<p class="owl-entry-text">' + escapeHtml(l.text) + '</p>';
+    return body;
+  }
 
   function renderOwlSide(side, entriesEl, emptyEl){
     var visible = owlLetters.filter(function(l){ return l.from === side || l.delivered; });
@@ -1787,16 +1950,16 @@
       var mine = l.from === side;
       if (mine){
         var statusHtml = l.delivered
-          ? '<span class="owl-status" data-status="delivered">📬 הגיע ל' + owlSideLabel(side === "wizard" ? "muggle" : "wizard") + '</span>'
+          ? '<span class="owl-status" data-status="delivered">📬 הגיע ' + owlToLabel(side === "wizard" ? "muggle" : "wizard") + '</span>'
           : '<span class="owl-status" data-status="flying">🦉 בדרך… עוד ' + Math.max(0, Math.ceil((l.arrivesAt - Date.now())/1000)) + ' שנ׳</span>';
         html += '<div class="owl-entry" data-mine="true">' +
           '<div class="owl-entry-head"><span>' + l.time + '</span>' + statusHtml + '</div>' +
-          '<p class="owl-entry-text">' + escapeHtml(l.text) + '</p></div>';
+          owlEntryBody(l) + '</div>';
       } else {
         html += '<div class="owl-entry" data-mine="false">' +
           '<div class="owl-entry-head"><span>' + l.time + '</span>' +
           '<span class="owl-status" data-status="delivered">📨 מכתב מ' + owlSideLabel(l.from) + '</span></div>' +
-          '<p class="owl-entry-text">' + escapeHtml(l.text) + '</p></div>';
+          owlEntryBody(l) + '</div>';
       }
     });
     entriesEl.innerHTML = html;
@@ -1816,11 +1979,12 @@
     }
   }
 
-  function sendOwlLetter(from, text){
+  function sendOwlLetter(from, text, image){
     var entry = {
       id: Date.now() + Math.random(),
       from: from,
       text: text,
+      image: image || "",
       time: nowLabel(),
       arrivesAt: Date.now() + OWL_FLIGHT_MS,
       delivered: false
@@ -1837,16 +2001,27 @@
   function updateOwlSendState(side){
     var input = side === "wizard" ? owlEls.inputWizard : owlEls.inputMuggle;
     var send = side === "wizard" ? owlEls.sendWizard : owlEls.sendMuggle;
-    send.disabled = input.value.trim() === "";
+    send.disabled = input.value.trim() === "" && !owlStagedImage[side];
+  }
+
+  function setOwlStagedImage(side, dataUrl){
+    owlStagedImage[side] = dataUrl || "";
+    var preview = side === "wizard" ? owlEls.attachPreviewWizard : owlEls.attachPreviewMuggle;
+    var previewImg = side === "wizard" ? owlEls.attachPreviewImgWizard : owlEls.attachPreviewImgMuggle;
+    preview.hidden = !dataUrl;
+    previewImg.src = dataUrl || "";
+    updateOwlSendState(side);
   }
 
   function submitOwlLetter(side){
     var input = side === "wizard" ? owlEls.inputWizard : owlEls.inputMuggle;
     var text = input.value.trim();
-    if (!text) return;
+    var image = owlStagedImage[side];
+    if (!text && !image) return;
     input.value = "";
+    setOwlStagedImage(side, "");
     updateOwlSendState(side);
-    sendOwlLetter(side, text);
+    sendOwlLetter(side, text, image);
   }
 
   owlEls.inputWizard.addEventListener("input", function(){ updateOwlSendState("wizard"); });
@@ -1857,11 +2032,29 @@
   owlEls.inputMuggle.addEventListener("keydown", function(e){ if (e.key === "Enter") submitOwlLetter("muggle"); });
   owlEls.sendMuggle.addEventListener("click", function(){ submitOwlLetter("muggle"); });
 
+  owlEls.attachWizard.addEventListener("click", function(){ owlEls.imageInputWizard.click(); });
+  owlEls.imageInputWizard.addEventListener("change", function(){
+    var file = owlEls.imageInputWizard.files && owlEls.imageInputWizard.files[0];
+    owlEls.imageInputWizard.value = "";
+    readImageFile(file, function(dataUrl){ setOwlStagedImage("wizard", dataUrl); });
+  });
+  owlEls.attachRemoveWizard.addEventListener("click", function(){ setOwlStagedImage("wizard", ""); });
+
+  owlEls.attachMuggle.addEventListener("click", function(){ owlEls.imageInputMuggle.click(); });
+  owlEls.imageInputMuggle.addEventListener("change", function(){
+    var file = owlEls.imageInputMuggle.files && owlEls.imageInputMuggle.files[0];
+    owlEls.imageInputMuggle.value = "";
+    readImageFile(file, function(dataUrl){ setOwlStagedImage("muggle", dataUrl); });
+  });
+  owlEls.attachRemoveMuggle.addEventListener("click", function(){ setOwlStagedImage("muggle", ""); });
+
   var owlConfirmTimer = null;
   owlEls.clear.addEventListener("click", function(){
     if (owlEls.clear.getAttribute("data-confirm") === "true"){
       owlLetters = [];
       if (owlTickTimer){ clearInterval(owlTickTimer); owlTickTimer = null; }
+      setOwlStagedImage("wizard", "");
+      setOwlStagedImage("muggle", "");
       renderOwlBoards();
       owlEls.clear.removeAttribute("data-confirm");
       owlEls.clear.textContent = "🧹 נקו את הדואר";
@@ -1879,6 +2072,136 @@
   updateOwlSendState("wizard");
   updateOwlSendState("muggle");
   renderOwlBoards();
+
+  /* ---------- talking patronus: like the owls, different design — fast delivery, spoken aloud, no attachments ---------- */
+  var patronusEls = {
+    board: document.getElementById("boardPatronus"),
+    viewSplit: document.getElementById("viewSplitPatronus"),
+    viewSeparate: document.getElementById("viewSeparatePatronus"),
+    sideSwitchWrap: document.getElementById("sideSwitchWrapPatronus"),
+    showWizard: document.getElementById("showWizardPatronus"),
+    showMuggle: document.getElementById("showMugglePatronus"),
+    panelWizard: document.getElementById("panelWizardPatronus"),
+    panelMuggle: document.getElementById("panelMugglePatronus"),
+    clear: document.getElementById("clearPatronus"),
+    badgeWizard: document.getElementById("patronusBadgeWizard"),
+    badgeMuggle: document.getElementById("patronusBadgeMuggle"),
+    scrollWizard: document.getElementById("patronusScrollWizard"),
+    scrollMuggle: document.getElementById("patronusScrollMuggle"),
+    emptyWizard: document.getElementById("patronusEmptyWizard"),
+    emptyMuggle: document.getElementById("patronusEmptyMuggle"),
+    entriesWizard: document.getElementById("patronusEntriesWizard"),
+    entriesMuggle: document.getElementById("patronusEntriesMuggle"),
+    inputWizard: document.getElementById("patronusInputWizard"),
+    sendWizard: document.getElementById("patronusSendWizard")
+  };
+
+  createViewController({
+    board: patronusEls.board, viewSplit: patronusEls.viewSplit, viewSeparate: patronusEls.viewSeparate,
+    sideSwitchWrap: patronusEls.sideSwitchWrap, showWizard: patronusEls.showWizard, showMuggle: patronusEls.showMuggle,
+    panelWizard: patronusEls.panelWizard, panelMuggle: patronusEls.panelMuggle
+  });
+
+  var PATRONUS_FLIGHT_MS = 5000;
+  var patronusMessages = [];
+  var patronusTickTimer = null;
+
+
+  function speakPatronusMessage(text){
+    if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === "undefined") return;
+    try{
+      var utter = new SpeechSynthesisUtterance(text);
+      utter.lang = "he-IL";
+      window.speechSynthesis.speak(utter);
+    } catch(e){ /* speech is a nice-to-have; ignore failures */ }
+  }
+
+  function renderPatronusSide(side, entriesEl, emptyEl){
+    var visible = side === "wizard" ? patronusMessages : patronusMessages.filter(function(m){ return m.delivered; });
+    emptyEl.style.display = visible.length ? "none" : "block";
+    var html = "";
+    visible.forEach(function(m){
+      var statusHtml = side === "wizard"
+        ? (m.delivered
+          ? '<span class="patronus-status" data-status="delivered">🔊 נמסר ונאמר בקול בבית</span>'
+          : '<span class="patronus-status" data-status="casting">🦌 דוהר… עוד ' + Math.max(0, Math.ceil((m.arrivesAt - Date.now())/1000)) + ' שנ׳</span>')
+        : '<span class="patronus-status" data-status="delivered">🦌 פטרונוס מהוגוורטס</span>';
+      html += '<div class="patronus-entry" data-mine="' + (side === "wizard") + '">' +
+        '<div class="patronus-entry-head"><span>' + m.time + '</span>' + statusHtml + '</div>' +
+        '<p class="patronus-entry-text">' + escapeHtml(m.text) + '</p></div>';
+    });
+    entriesEl.innerHTML = html;
+  }
+
+  function renderPatronusBoards(){
+    renderPatronusSide("wizard", patronusEls.entriesWizard, patronusEls.emptyWizard);
+    renderPatronusSide("muggle", patronusEls.entriesMuggle, patronusEls.emptyMuggle);
+    patronusEls.scrollWizard.scrollTop = patronusEls.scrollWizard.scrollHeight;
+    patronusEls.scrollMuggle.scrollTop = patronusEls.scrollMuggle.scrollHeight;
+    var hasPending = patronusMessages.some(function(m){ return !m.delivered; });
+    if (hasPending && !patronusTickTimer){
+      patronusTickTimer = setInterval(renderPatronusBoards, 1000);
+    } else if (!hasPending && patronusTickTimer){
+      clearInterval(patronusTickTimer);
+      patronusTickTimer = null;
+    }
+  }
+
+  function sendPatronusMessage(text){
+    var entry = {
+      id: Date.now() + Math.random(),
+      text: text,
+      time: nowLabel(),
+      arrivesAt: Date.now() + PATRONUS_FLIGHT_MS,
+      delivered: false
+    };
+    patronusMessages.push(entry);
+    renderPatronusBoards();
+    setTimeout(function(){
+      entry.delivered = true;
+      renderPatronusBoards();
+      glow(patronusEls.badgeMuggle);
+      speakPatronusMessage(entry.text);
+    }, PATRONUS_FLIGHT_MS);
+  }
+
+  function updatePatronusSendState(){
+    patronusEls.sendWizard.disabled = patronusEls.inputWizard.value.trim() === "";
+  }
+
+  function submitPatronusMessage(){
+    var text = patronusEls.inputWizard.value.trim();
+    if (!text) return;
+    patronusEls.inputWizard.value = "";
+    updatePatronusSendState();
+    sendPatronusMessage(text);
+  }
+
+  patronusEls.inputWizard.addEventListener("input", updatePatronusSendState);
+  patronusEls.inputWizard.addEventListener("keydown", function(e){ if (e.key === "Enter") submitPatronusMessage(); });
+  patronusEls.sendWizard.addEventListener("click", submitPatronusMessage);
+
+  var patronusConfirmTimer = null;
+  patronusEls.clear.addEventListener("click", function(){
+    if (patronusEls.clear.getAttribute("data-confirm") === "true"){
+      patronusMessages = [];
+      if (patronusTickTimer){ clearInterval(patronusTickTimer); patronusTickTimer = null; }
+      renderPatronusBoards();
+      patronusEls.clear.removeAttribute("data-confirm");
+      patronusEls.clear.textContent = "🧹 נקו הודעות";
+      clearTimeout(patronusConfirmTimer);
+      return;
+    }
+    patronusEls.clear.setAttribute("data-confirm","true");
+    patronusEls.clear.textContent = "בטוחים? לחצו שוב לניקוי";
+    patronusConfirmTimer = setTimeout(function(){
+      patronusEls.clear.removeAttribute("data-confirm");
+      patronusEls.clear.textContent = "🧹 נקו הודעות";
+    }, 3000);
+  });
+
+  updatePatronusSendState();
+  renderPatronusBoards();
 
   /* ---------- drawing ---------- */
   var ctxW = els.canvasWizard.getContext("2d");
