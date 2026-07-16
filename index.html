@@ -1261,6 +1261,7 @@ window.APP_CONFIG = {
     mySide = side;
     localStorage.setItem("mk_side_" + room, side);
     viewControllers.forEach(function(c){ c.lockToSide(side); });
+    mirrorViewController.lockToSide(side === "wizard" ? "muggle" : "wizard");
     var pick = document.getElementById("rolePick");
     if (pick) pick.hidden = true;
     var badge = document.getElementById("roomRole");
@@ -1276,6 +1277,7 @@ window.APP_CONFIG = {
   function unlockAllSides(){
     mySide = "";
     viewControllers.forEach(function(c){ c.unlock(); });
+    mirrorViewController.unlock();
     var badge = document.getElementById("roomRole");
     if (badge) badge.hidden = true;
   }
@@ -1427,7 +1429,7 @@ window.APP_CONFIG = {
     onLayout: function(){ sizeAllCanvases(); renderStrokes(); }
   }));
 
-  createViewController({
+  var mirrorViewController = createViewController({
     board: els.boardMirror, viewSplit: els.viewSplitMirror, viewSeparate: els.viewSeparateMirror,
     sideSwitchWrap: els.sideSwitchWrapMirror, showWizard: els.showWizardMirror, showMuggle: els.showMuggleMirror,
     panelWizard: els.panelWizardMirror, panelMuggle: els.panelMuggleMirror
@@ -1445,7 +1447,6 @@ window.APP_CONFIG = {
         b.setAttribute("aria-selected", String(active));
       });
       tabPanels.forEach(function(p){ p.hidden = p.getAttribute("data-tab") !== target; });
-      if (target !== "mirror") stopCamera();
     });
   });
 
@@ -1472,8 +1473,6 @@ window.APP_CONFIG = {
     { urls: "stun:stun1.l.google.com:19302" }
   ];
 
-  function myMirrorVideo(){ return mySide === "muggle" ? els.videoMuggle : els.videoWizard; }
-  function myMirrorFrame(){ return mySide === "muggle" ? els.frameMuggle : els.frameWizard; }
   function peerMirrorVideo(){ return mySide === "muggle" ? els.videoWizard : els.videoMuggle; }
   function peerMirrorFrame(){ return mySide === "muggle" ? els.frameWizard : els.frameMuggle; }
 
@@ -1552,16 +1551,14 @@ window.APP_CONFIG = {
     setMirrorStatus("מבקשים הרשאת מצלמה…", "pending");
     navigator.mediaDevices.getUserMedia({video:true, audio:false}).then(function(stream){
       mirrorStream = stream;
-      myMirrorVideo().srcObject = stream;
-      myMirrorFrame().setAttribute("data-streaming","true");
       els.cameraToggle.textContent = "⏹ סגרו מצלמה";
       els.cameraToggle.setAttribute("data-live","true");
-      glow(myMirrorFrame());
       if (db && currentRoom && mySide){
         startMirrorCall();
       } else {
         peerMirrorVideo().srcObject = stream;
         peerMirrorFrame().setAttribute("data-streaming","true");
+        glow(peerMirrorFrame());
         setMirrorStatus("המראה פעילה (הדגמה מקומית) — הצטרפו לחדר ובחרו תפקיד כדי לראות את הצד השני באמת", "ok");
       }
     }).catch(function(err){
