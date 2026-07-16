@@ -391,6 +391,18 @@
     font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; font-size:11px; opacity:.75;
   }
   .owl-entry-text{font-size:15.5px; line-height:1.5;}
+  .owl-entry-image{max-width:200px; max-height:150px; border-radius:8px; display:block; border:1px solid rgba(92,61,31,.35); margin-top:2px;}
+  .owl-attach-preview{
+    display:flex; align-items:center; gap:10px; font-size:12px;
+    font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  .owl-attach-preview[hidden]{display:none;}
+  .owl-attach-preview img{width:44px; height:44px; object-fit:cover; border-radius:6px; border:1px solid rgba(92,61,31,.4); flex-shrink:0;}
+  .owl-attach-preview button{
+    border:none; background:transparent; color:var(--ember); cursor:pointer; font-family:inherit; font-size:12px;
+    text-decoration:underline; padding:0;
+  }
+  .owl-attach-preview button:focus-visible{outline:2px solid var(--focus); outline-offset:2px;}
   .owl-status{font-size:11px; white-space:nowrap; font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;}
   .owl-status[data-status="flying"]{color:#8a5a2c; font-weight:600;}
   .owl-status[data-status="delivered"]{color:color-mix(in srgb, var(--dusk) 70%, #4a3315); font-weight:600;}
@@ -980,7 +992,13 @@
             <p class="owl-empty" id="owlEmptyWizard">אין עדיין מכתבים — כתבו ושלחו ינשוף</p>
             <div id="owlEntriesWizard"></div>
           </div>
+          <div class="owl-attach-preview" id="owlAttachPreviewWizard" hidden>
+            <img id="owlAttachPreviewImgWizard" alt="תמונה מצורפת" />
+            <button type="button" id="owlAttachRemoveWizard">✕ הסירו תמונה</button>
+          </div>
           <div class="inputrow">
+            <button type="button" class="attach-btn" id="owlAttachWizard" title="צרפו תמונה למכתב" aria-label="צרפו תמונה">📎</button>
+            <input type="file" id="owlImageInputWizard" accept="image/png,image/jpeg,image/webp,image/bmp,image/gif" hidden />
             <input type="text" id="owlInputWizard" placeholder="כתבו מכתב לבית…" maxlength="200" />
             <button type="button" class="sendbtn owl-send" id="owlSendWizard" disabled>שלחו ינשוף 🦉</button>
           </div>
@@ -1007,7 +1025,13 @@
             <p class="owl-empty" id="owlEmptyMuggle">אין עדיין מכתבים — כתבו ושלחו ינשוף</p>
             <div id="owlEntriesMuggle"></div>
           </div>
+          <div class="owl-attach-preview" id="owlAttachPreviewMuggle" hidden>
+            <img id="owlAttachPreviewImgMuggle" alt="תמונה מצורפת" />
+            <button type="button" id="owlAttachRemoveMuggle">✕ הסירו תמונה</button>
+          </div>
           <div class="inputrow">
+            <button type="button" class="attach-btn" id="owlAttachMuggle" title="צרפו תמונה למכתב" aria-label="צרפו תמונה">📎</button>
+            <input type="file" id="owlImageInputMuggle" accept="image/png,image/jpeg,image/webp,image/bmp,image/gif" hidden />
             <input type="text" id="owlInputMuggle" placeholder="כתבו מכתב להוגוורטס…" maxlength="200" />
             <button type="button" class="sendbtn owl-send" id="owlSendMuggle" disabled>שלחו ינשוף 🦉</button>
           </div>
@@ -1764,7 +1788,17 @@
     inputWizard: document.getElementById("owlInputWizard"),
     inputMuggle: document.getElementById("owlInputMuggle"),
     sendWizard: document.getElementById("owlSendWizard"),
-    sendMuggle: document.getElementById("owlSendMuggle")
+    sendMuggle: document.getElementById("owlSendMuggle"),
+    attachWizard: document.getElementById("owlAttachWizard"),
+    attachMuggle: document.getElementById("owlAttachMuggle"),
+    imageInputWizard: document.getElementById("owlImageInputWizard"),
+    imageInputMuggle: document.getElementById("owlImageInputMuggle"),
+    attachPreviewWizard: document.getElementById("owlAttachPreviewWizard"),
+    attachPreviewMuggle: document.getElementById("owlAttachPreviewMuggle"),
+    attachPreviewImgWizard: document.getElementById("owlAttachPreviewImgWizard"),
+    attachPreviewImgMuggle: document.getElementById("owlAttachPreviewImgMuggle"),
+    attachRemoveWizard: document.getElementById("owlAttachRemoveWizard"),
+    attachRemoveMuggle: document.getElementById("owlAttachRemoveMuggle")
   };
 
   createViewController({
@@ -1776,8 +1810,16 @@
   var OWL_FLIGHT_MS = 60000;
   var owlLetters = [];
   var owlTickTimer = null;
+  var owlStagedImage = {wizard:"", muggle:""};
 
   function owlSideLabel(side){ return side === "wizard" ? "הוגוורטס" : "הבית"; }
+
+  function owlEntryBody(l){
+    var body = "";
+    if (l.image) body += '<img class="owl-entry-image" src="' + l.image + '" alt="תמונה מצורפת למכתב" />';
+    if (l.text) body += '<p class="owl-entry-text">' + escapeHtml(l.text) + '</p>';
+    return body;
+  }
 
   function renderOwlSide(side, entriesEl, emptyEl){
     var visible = owlLetters.filter(function(l){ return l.from === side || l.delivered; });
@@ -1791,12 +1833,12 @@
           : '<span class="owl-status" data-status="flying">🦉 בדרך… עוד ' + Math.max(0, Math.ceil((l.arrivesAt - Date.now())/1000)) + ' שנ׳</span>';
         html += '<div class="owl-entry" data-mine="true">' +
           '<div class="owl-entry-head"><span>' + l.time + '</span>' + statusHtml + '</div>' +
-          '<p class="owl-entry-text">' + escapeHtml(l.text) + '</p></div>';
+          owlEntryBody(l) + '</div>';
       } else {
         html += '<div class="owl-entry" data-mine="false">' +
           '<div class="owl-entry-head"><span>' + l.time + '</span>' +
           '<span class="owl-status" data-status="delivered">📨 מכתב מ' + owlSideLabel(l.from) + '</span></div>' +
-          '<p class="owl-entry-text">' + escapeHtml(l.text) + '</p></div>';
+          owlEntryBody(l) + '</div>';
       }
     });
     entriesEl.innerHTML = html;
@@ -1816,11 +1858,12 @@
     }
   }
 
-  function sendOwlLetter(from, text){
+  function sendOwlLetter(from, text, image){
     var entry = {
       id: Date.now() + Math.random(),
       from: from,
       text: text,
+      image: image || "",
       time: nowLabel(),
       arrivesAt: Date.now() + OWL_FLIGHT_MS,
       delivered: false
@@ -1837,16 +1880,27 @@
   function updateOwlSendState(side){
     var input = side === "wizard" ? owlEls.inputWizard : owlEls.inputMuggle;
     var send = side === "wizard" ? owlEls.sendWizard : owlEls.sendMuggle;
-    send.disabled = input.value.trim() === "";
+    send.disabled = input.value.trim() === "" && !owlStagedImage[side];
+  }
+
+  function setOwlStagedImage(side, dataUrl){
+    owlStagedImage[side] = dataUrl || "";
+    var preview = side === "wizard" ? owlEls.attachPreviewWizard : owlEls.attachPreviewMuggle;
+    var previewImg = side === "wizard" ? owlEls.attachPreviewImgWizard : owlEls.attachPreviewImgMuggle;
+    preview.hidden = !dataUrl;
+    previewImg.src = dataUrl || "";
+    updateOwlSendState(side);
   }
 
   function submitOwlLetter(side){
     var input = side === "wizard" ? owlEls.inputWizard : owlEls.inputMuggle;
     var text = input.value.trim();
-    if (!text) return;
+    var image = owlStagedImage[side];
+    if (!text && !image) return;
     input.value = "";
+    setOwlStagedImage(side, "");
     updateOwlSendState(side);
-    sendOwlLetter(side, text);
+    sendOwlLetter(side, text, image);
   }
 
   owlEls.inputWizard.addEventListener("input", function(){ updateOwlSendState("wizard"); });
@@ -1857,11 +1911,29 @@
   owlEls.inputMuggle.addEventListener("keydown", function(e){ if (e.key === "Enter") submitOwlLetter("muggle"); });
   owlEls.sendMuggle.addEventListener("click", function(){ submitOwlLetter("muggle"); });
 
+  owlEls.attachWizard.addEventListener("click", function(){ owlEls.imageInputWizard.click(); });
+  owlEls.imageInputWizard.addEventListener("change", function(){
+    var file = owlEls.imageInputWizard.files && owlEls.imageInputWizard.files[0];
+    owlEls.imageInputWizard.value = "";
+    readImageFile(file, function(dataUrl){ setOwlStagedImage("wizard", dataUrl); });
+  });
+  owlEls.attachRemoveWizard.addEventListener("click", function(){ setOwlStagedImage("wizard", ""); });
+
+  owlEls.attachMuggle.addEventListener("click", function(){ owlEls.imageInputMuggle.click(); });
+  owlEls.imageInputMuggle.addEventListener("change", function(){
+    var file = owlEls.imageInputMuggle.files && owlEls.imageInputMuggle.files[0];
+    owlEls.imageInputMuggle.value = "";
+    readImageFile(file, function(dataUrl){ setOwlStagedImage("muggle", dataUrl); });
+  });
+  owlEls.attachRemoveMuggle.addEventListener("click", function(){ setOwlStagedImage("muggle", ""); });
+
   var owlConfirmTimer = null;
   owlEls.clear.addEventListener("click", function(){
     if (owlEls.clear.getAttribute("data-confirm") === "true"){
       owlLetters = [];
       if (owlTickTimer){ clearInterval(owlTickTimer); owlTickTimer = null; }
+      setOwlStagedImage("wizard", "");
+      setOwlStagedImage("muggle", "");
       renderOwlBoards();
       owlEls.clear.removeAttribute("data-confirm");
       owlEls.clear.textContent = "🧹 נקו את הדואר";
